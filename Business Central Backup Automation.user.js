@@ -5,7 +5,7 @@
 // @description    Automates the creation of backups of the Business Central database using Azure.
 // @description:de Automatisierung des Erstellens von Backups von Business Central mittels Azure.
 
-// @version        1.0.1
+// @version        1.1.0
 // @author         Rsge
 // @copyright      2025+, Jan G. (Rsge)
 // @license        All rights reserved
@@ -25,7 +25,7 @@
 // ==/UserScript==
 
 (async function() {
-    'use strict';
+  'use strict';
 
   // Constants
   const T = 1000;
@@ -37,7 +37,8 @@
   const PASTE_SAS_URI_MSG = `<p>Sadly, automatic pasting of the SAS-URL doesn't seem possible.<br>
   The SAS-URL will be added to your clipboard.<br>
   Please paste it manually using <kbd><kbd>Strg</kbd>+<kbd>V</kbd></kbd>.<br>
-  After pasting, the export will automatically be started immediately and the tab closed after 5 s.</p>`;
+  After pasting, the export will automatically be started immediately and the tab closed after 5 s.<br>
+  It can then take around 15 minutes for the backup to shop up in Containers.</p>`;
 
   // Variables
   let i;
@@ -144,7 +145,12 @@
     // Storage accounts
     await findClickWait("fxs-sidebar-item-link", "Storage accounts", 3*T);
     // First storage account
-    getXthElementByClassName("fxc-gcflink-link").click();
+    let accountCName = "fxc-gcflink-link"
+    if (!getXthElementByClassName(accountCName)) {
+      window.open("https://portal.azure.com/#blade/HubsExtension/BrowseResourceLegacy/resourceType/Microsoft.Storage%2FStorageAccounts", "_self");
+      await sleep(3*T);
+    }
+    getXthElementByClassName(accountCName).click();
     await sleep(3*T);
     // Sidebar
     await findClickWait("fxs-topbar-sidebar-collapse-button", "Show portal menu", 0.5*T);
@@ -171,7 +177,6 @@
     let endDatePicker = getXthElementByClassName("azc-datePicker", 1);
     let datePanelOpener = endDatePicker.children[0].children[1];
     datePanelOpener.click();
-    await sleep(T);
     let datePanel = getXthElementByClassName("azc-datePanel");
     let todayBox = datePanel.getElementsByClassName("azc-datePanel-selected")[0];
     let weekArray = Array.from(todayBox.parentNode.children);
@@ -191,8 +196,8 @@
     // Containers
     await findClickWait("fxc-menu-item", "Containers", 4*T, true);
     // First container
-    getXthElementByClassName("azc-grid-cellContent").click();
-    await sleep(30*T);
+    getXthElementByClassName("ms-List-cell")?.children[0].children[1].children[0].children[0].children[1].click();
+    await sleep(240*T);
     await findClickWait("azc-toolbarButton-label", "Refresh", T, true);
   } // BusinessCentral
   else if (LOC.host.startsWith("businesscentral")) {
