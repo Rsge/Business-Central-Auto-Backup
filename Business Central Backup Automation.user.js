@@ -5,7 +5,7 @@
 // @description    Automates the creation of backups of the Business Central database using Azure.
 // @description:de Automatisierung des Erstellens von Backups von Business Central mittels Azure.
 
-// @version        1.1.0
+// @version        1.1.1
 // @author         Rsge
 // @copyright      2025+, Jan G. (Rsge)
 // @license        All rights reserved
@@ -36,9 +36,9 @@
   const START_AUTOMATION_QUESTION = "Start backup automation?";
   const PASTE_SAS_URI_MSG = `<p>Sadly, automatic pasting of the SAS-URL doesn't seem possible.<br>
   The SAS-URL will be added to your clipboard.<br>
-  Please paste it manually using <kbd><kbd>Strg</kbd>+<kbd>V</kbd></kbd>.<br>
+  Please paste it manually using <kbd><kbd>Ctrl</kbd>+<kbd>V</kbd></kbd>.<br>
   After pasting, the export will automatically be started immediately and the tab closed after 5 s.<br>
-  It can then take around 15 minutes for the backup to shop up in Containers.</p>`;
+  It can then take around 15 minutes for the backup to show up in Containers.</p>`;
 
   // Variables
   let i;
