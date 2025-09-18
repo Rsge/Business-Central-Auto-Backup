@@ -5,7 +5,7 @@
 // @description    Automates the creation of backups of the Business Central database using Azure.
 // @description:de Automatisierung des Erstellens von Backups von Business Central mittels Azure.
 
-// @version        1.1.1
+// @version        1.1.2
 // @author         Rsge
 // @copyright      2025+, Jan G. (Rsge)
 // @license        All rights reserved
@@ -158,9 +158,9 @@
     await findClickWait("fxc-menu-item", "Shared access signature", 4*T, true);
     // SAS form
     /// Checkboxes
-    let ucFieldIDs = ["__field__6__", "__field__7__", "__field__8__", // Allowed services
-                      "__field__15__", "__field__16__", "__field__20__", "__field__21__"]; // Allowed permissions
-    let cFieldIDs = ["__field__10__", "__field__11__", ]; // Allowed resource types
+    let ucFieldIDs = ["__field__7__", "__field__8__", "__field__9__", // Allowed services
+                      "__field__16__", "__field__17__", "__field__19__", "__field__20__", "__field__21__", "__field__22__"]; // Allowed permissions
+    let cFieldIDs = ["__field__11__", "__field__12__", ]; // Allowed resource types
     for (let ucFieldID of ucFieldIDs) {
       let ucField = document.getElementById(ucFieldID);
       if (ucField.ariaChecked == true.toString()) {
