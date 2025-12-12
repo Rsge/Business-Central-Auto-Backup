@@ -5,7 +5,7 @@
 // @description    Automates the creation of backups of the Business Central database using Azure.
 // @description:de Automatisierung des Erstellens von Backups von Business Central mittels Azure.
 
-// @version        1.1.2
+// @version        2.0.0
 // @author         Rsge
 // @copyright      2025+, Jan G. (Rsge)
 // @license        All rights reserved
@@ -20,11 +20,11 @@
 // @match          https://portal.azure.com/*
 // @match          https://businesscentral.dynamics.com/*
 
-// @run-at         document-idle
+// @run-at         document-end
 // @grant          none
 // ==/UserScript==
 
-(async function() {
+(function() {
   'use strict';
 
   // Constants
@@ -138,167 +138,168 @@
 
   /* Main */
   // Azure
-  if (LOC.href.endsWith("azure.com/#home") &&
-      await yesNoDialog(START_AUTOMATION_QUESTION)) {
-    // Sidebar
-    await findClickWait("fxs-topbar-sidebar-collapse-button", "Show portal menu", 0.5*T);
-    // Storage accounts
-    await findClickWait("fxs-sidebar-item-link", "Storage accounts", 3*T);
-    // First storage account
-    let accountCName = "fxc-gcflink-link"
-    if (!getXthElementByClassName(accountCName)) {
-      window.open("https://portal.azure.com/#blade/HubsExtension/BrowseResourceLegacy/resourceType/Microsoft.Storage%2FStorageAccounts", "_self");
+  window.addEventListener('load', async function() {
+    if (LOC.href.endsWith("azure.com/#home") && await yesNoDialog(START_AUTOMATION_QUESTION)) {
+      // Sidebar
+      await findClickWait("fxs-topbar-sidebar-collapse-button", "Show portal menu", 0.5*T);
+      // Storage accounts
+      await findClickWait("fxs-sidebar-item-link", "Storage accounts", 3*T);
+      // First storage account
+      let accountCName = "fxc-gcflink-link"
+      if (!getXthElementByClassName(accountCName)) {
+        window.open("https://portal.azure.com/#blade/HubsExtension/BrowseResourceLegacy/resourceType/Microsoft.Storage%2FStorageAccounts", "_self");
+        await sleep(3*T);
+      }
+      getXthElementByClassName(accountCName).click();
       await sleep(3*T);
-    }
-    getXthElementByClassName(accountCName).click();
-    await sleep(3*T);
-    // Sidebar
-    await findClickWait("fxs-topbar-sidebar-collapse-button", "Show portal menu", 0.5*T);
-    // Shared access signature
-    await findClickWait("fxc-menu-item", "Shared access signature", 4*T, true);
-    // SAS form
-    /// Checkboxes
-    let ucFieldIDs = ["__field__7__", "__field__8__", "__field__9__", // Allowed services
-                      "__field__16__", "__field__17__", "__field__19__", "__field__20__", "__field__21__", "__field__22__"]; // Allowed permissions
-    let cFieldIDs = ["__field__11__", "__field__12__", ]; // Allowed resource types
-    for (let ucFieldID of ucFieldIDs) {
-      let ucField = document.getElementById(ucFieldID);
-      if (ucField.ariaChecked == true.toString()) {
-        ucField.click();
+      // Sidebar
+      await findClickWait("fxs-topbar-sidebar-collapse-button", "Show portal menu", 0.5*T);
+      // Shared access signature
+      await findClickWait("fxc-menu-item", "Shared access signature", 5*T, true);
+      // SAS form
+      /// Checkboxes
+      let ucFieldIDs = ["__field__7__", "__field__8__", "__field__9__", // Allowed services
+                        "__field__16__", "__field__17__", "__field__19__", "__field__20__", "__field__21__", "__field__22__"]; // Allowed permissions
+      let cFieldIDs = ["__field__11__", "__field__12__", ]; // Allowed resource types
+      for (let ucFieldID of ucFieldIDs) {
+        let ucField = document.getElementById(ucFieldID);
+        if (ucField.ariaChecked == true.toString()) {
+          ucField.click();
+        }
       }
-    }
-    for (let cFieldID of cFieldIDs) {
-      let cField = document.getElementById(cFieldID);
-      if (cField.ariaChecked === false.toString()) {
-        cField.click();
+      for (let cFieldID of cFieldIDs) {
+        let cField = document.getElementById(cFieldID);
+        if (cField.ariaChecked === false.toString()) {
+          cField.click();
+        }
       }
-    }
-    /// Date
-    let endDatePicker = getXthElementByClassName("azc-datePicker", 1);
-    let datePanelOpener = endDatePicker.children[0].children[1];
-    datePanelOpener.click();
-    let datePanel = getXthElementByClassName("azc-datePanel");
-    let todayBox = datePanel.getElementsByClassName("azc-datePanel-selected")[0];
-    let weekArray = Array.from(todayBox.parentNode.children);
-    let todayIdx = weekArray.indexOf(todayBox);
-    let tomorrowBox = weekArray[todayIdx + 1];
-    tomorrowBox.click();
-    await sleep(T);
-    /// Generate
-    await findClickWait("fxc-simplebutton", "Generate SAS and connection string", 2*T, true);
-    /// Copy
-    let encLink = encodeURIComponent(getElementByClassNameAndTitle("azc-input azc-formControl", "https://").value);
-    // Open BC
-    let bcWindow = window.open("https://businesscentral.dynamics.com/?noSignUpCheck=1&" + LINK_LABEL + "=" + encLink)
-    await sleep(T);
-    // Sidebar
-    await findClickWait("fxs-topbar-sidebar-collapse-button", "Show portal menu", 0.5*T);
-    // Containers
-    await findClickWait("fxc-menu-item", "Containers", 4*T, true);
-    // First container
-    getXthElementByClassName("ms-List-cell")?.children[0].children[1].children[0].children[0].children[1].click();
-    await sleep(240*T);
-    await findClickWait("azc-toolbarButton-label", "Refresh", T, true);
-  } // BusinessCentral
-  else if (LOC.host.startsWith("businesscentral")) {
-    // Normal BC
-    if (!LOC.pathname.endsWith("/admin")) {
-      // Get SAS link from URL.
-      let params = new URLSearchParams(LOC.search);
-      const Link = encodeURIComponent(params.get(LINK_LABEL));
-      // If no link found, exit for normal use.
-      if (!Link) {
-        return;
-      }
-      // Wait for loading of elements.
-      let ranSettings = false;
-      let ranAC = false;
-      let observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-          // "Disable" observer after Admin Center is clicked.
-          if (ranAC) {
-            return;
-          }
-          let node = mutation.addedNodes[0];
-          if (node?.children != null && node.children.length > 0) {
-            // Open settings dropdown.
-            const SettingsButtonID = "O365_MainLink_Settings";
-            if (!ranSettings && node.children[0].id == SettingsButtonID) {
-              ranSettings = true;
-              document.getElementById(SettingsButtonID).click();
-            } // Open Admin Center (in new tab) and close current tab.
-            // Also set a cookie with the SAS link for use in the Admin Center.
-            else {
-              let adminCenter = document.getElementById("AdminCenter")
-              if (adminCenter) {
-                ranAC = true;
-                setCookie(LINK_LABEL, Link)
-                adminCenter.click();
-                window.close();
-              }
+      /// Date
+      let endDatePicker = getXthElementByClassName("azc-datePicker", 1);
+      let datePanelOpener = endDatePicker.children[0].children[1];
+      datePanelOpener.click();
+      let datePanel = getXthElementByClassName("azc-datePanel");
+      let todayBox = datePanel.getElementsByClassName("azc-datePanel-selected")[0];
+      let weekArray = Array.from(todayBox.parentNode.children);
+      let todayIdx = weekArray.indexOf(todayBox);
+      let tomorrowBox = weekArray[todayIdx + 1];
+      tomorrowBox.click();
+      await sleep(T);
+      /// Generate
+      await findClickWait("fxc-simplebutton", "Generate SAS and connection string", 2*T, true);
+      /// Copy
+      let encLink = encodeURIComponent(getElementByClassNameAndTitle("azc-input azc-formControl", "https://").value);
+      // Open BC
+      let bcWindow = window.open("https://businesscentral.dynamics.com/?noSignUpCheck=1&" + LINK_LABEL + "=" + encLink)
+      await sleep(T);
+      // Sidebar
+      await findClickWait("fxs-topbar-sidebar-collapse-button", "Show portal menu", 0.5*T);
+      // Containers
+      await findClickWait("fxc-menu-item", "Containers", 4*T, true);
+      // First container
+      getXthElementByClassName("ms-List-cell")?.children[0].children[1].children[0].children[0].children[1].click();
+      await sleep(240*T);
+      await findClickWait("azc-toolbarButton-label", "Refresh", T, true);
+    } // BusinessCentral
+    else if (LOC.host.startsWith("businesscentral")) {
+      // Normal BC
+      if (!LOC.pathname.endsWith("/admin")) {
+        // Get SAS link from URL.
+        let params = new URLSearchParams(LOC.search);
+        const Link = encodeURIComponent(params.get(LINK_LABEL));
+        // If no link found, exit for normal use.
+        if (!Link) {
+          return;
+        }
+        // Wait for loading of elements.
+        let ranSettings = false;
+        let ranAC = false;
+        let observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            // "Disable" observer after Admin Center is clicked.
+            if (ranAC) {
+              return;
             }
-          }
-        });
-      });
-      observer.observe(document.documentElement, {
-        childList: true,
-        subtree: true
-      });
-    } // BC Admin Center
-    else {
-      // Get SAS link from cookie.
-      const Link = getCookies()[LINK_LABEL];
-      // If no link found, exit for normal use.
-      if (!Link || Link.length == 0) {
-        return;
-      }
-      // Environments
-      findClickWait("ms-Button ms-Button--action ms-Button--command", "Environments", 0);
-      // Wait for loading of environments.
-      let run = false;
-      const EnvListClassName = "ms-List-page"
-      let observer = new MutationObserver(function(mutations) {
-        mutations.forEach(async function(mutation) {
-          let node = mutation.addedNodes[0];
-          //console.log(node);
-          if (node?.children != null) {
-            if (node.className == EnvListClassName) {
-              // First environment
-              let envList = getXthElementByClassName(EnvListClassName);
-              let env = envList.children[ENV_IDX].children[0].children[0].children[0].children[0].children[0];
-              env.click();
-              await sleep(T);
-              // Database dropdown
-              await findClickWait("ms-Button ms-Button--commandBar ms-Button--hasMenu", "Database", 0.5*T);
-              // Create export
-              await findClickWait("ms-ContextualMenu-link", "Create database export");
-            } else if (node.className.startsWith("ms-Layer ms-Layer--fixed")) {
-              // Insert link
-              let sasTxt = getElementByClassNameAndTitle("ms-TextField-field", "SAS URI from Azure");
-              if (sasTxt) {
-                let decLink = decodeURIComponent(Link);
-                await sleep(T);
-                if (await okCancelDialog(PASTE_SAS_URI_MSG)) {
-                  const inputHandler = async function(e) {
-                    if (e.target.value == decLink) {
-                      await sleep(T);
-                      await findClickWait("ms-Button ms-Button--primary", "Create", 5*T, true);
-                      window.close();
-                    }
-                  }
-                  sasTxt.addEventListener("input", inputHandler);
-                  navigator.clipboard.writeText(decLink);
-                  sasTxt.focus();
+            let node = mutation.addedNodes[0];
+            if (node?.children != null && node.children.length > 0) {
+              // Open settings dropdown.
+              const SettingsButtonID = "O365_MainLink_Settings";
+              if (!ranSettings && node.children[0].id == SettingsButtonID) {
+                ranSettings = true;
+                document.getElementById(SettingsButtonID).click();
+              } // Open Admin Center (in new tab) and close current tab.
+              // Also set a cookie with the SAS link for use in the Admin Center.
+              else {
+                let adminCenter = document.getElementById("AdminCenter")
+                if (adminCenter) {
+                  ranAC = true;
+                  setCookie(LINK_LABEL, Link)
+                  adminCenter.click();
+                  window.close();
                 }
               }
             }
-          }
+          });
         });
-      });
-      observer.observe(document.documentElement, {
-        childList: true,
-        subtree: true
-      });
+        observer.observe(document.documentElement, {
+          childList: true,
+          subtree: true
+        });
+      } // BC Admin Center
+      else {
+        // Get SAS link from cookie.
+        const Link = getCookies()[LINK_LABEL];
+        // If no link found, exit for normal use.
+        if (!Link || Link.length == 0) {
+          return;
+        }
+        // Environments
+        findClickWait("ms-Button ms-Button--action ms-Button--command", "Environments", 0);
+        // Wait for loading of environments.
+        let run = false;
+        const EnvListClassName = "ms-List-page"
+        let observer = new MutationObserver(function(mutations) {
+          mutations.forEach(async function(mutation) {
+            let node = mutation.addedNodes[0];
+            //console.log(node);
+            if (node?.children != null) {
+              if (node.className == EnvListClassName) {
+                // First environment
+                let envList = getXthElementByClassName(EnvListClassName);
+                let env = envList.children[ENV_IDX].children[0].children[0].children[0].children[0].children[0];
+                env.click();
+                await sleep(T);
+                // Database dropdown
+                await findClickWait("ms-Button ms-Button--commandBar ms-Button--hasMenu", "Database", 0.5*T);
+                // Create export
+                await findClickWait("ms-ContextualMenu-link", "Create database export");
+              } else if (node.className.startsWith("ms-Layer ms-Layer--fixed")) {
+                // Insert link
+                let sasTxt = getElementByClassNameAndTitle("ms-TextField-field", "SAS URI from Azure");
+                if (sasTxt) {
+                  let decLink = decodeURIComponent(Link);
+                  await sleep(T);
+                  if (await okCancelDialog(PASTE_SAS_URI_MSG)) {
+                    const inputHandler = async function(e) {
+                      if (e.target.value == decLink) {
+                        await sleep(T);
+                        await findClickWait("ms-Button ms-Button--primary", "Create", 5*T, true);
+                        window.close();
+                      }
+                    }
+                    sasTxt.addEventListener("input", inputHandler);
+                    navigator.clipboard.writeText(decLink);
+                    sasTxt.focus();
+                  }
+                }
+              }
+            }
+          });
+        });
+        observer.observe(document.documentElement, {
+          childList: true,
+          subtree: true
+        });
+      }
     }
-  }
+  })
 })();
