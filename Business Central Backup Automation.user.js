@@ -5,10 +5,10 @@
 // @description    Automates the creation of backups of the Business Central database using Azure.
 // @description:de Automatisierung des Erstellens von Backups von Business Central mittels Azure.
 
-// @version        2.0.0
+// @version        2.0.1
 // @author         Rsge
 // @copyright      2025+, Jan G. (Rsge)
-// @license        All rights reserved
+// @license        Mozilla Public License 2.0
 // @icon           https://msweugwcas4004-a8arc8v.appservices.weu.businesscentral.dynamics.com/tenant/msweua1602t06326066/tab/92b102bf-7e05-4693-b322-e60777e7602f/Brand/Images/favicon.ico
 
 // @namespace      https://github.com/Rsge
