@@ -5,7 +5,7 @@
 // @description    Automates the creation of backups of the Business Central database using Azure.
 // @description:de Automatisierung des Erstellens von Backups von Business Central mittels Azure.
 
-// @version        2.0.1
+// @version        2.0.2
 // @author         Rsge
 // @copyright      2025+, Jan G. (Rsge)
 // @license        Mozilla Public License 2.0
@@ -139,6 +139,7 @@
   /* Main */
   // Azure
   window.addEventListener('load', async function() {
+    debugger;
     if (LOC.href.endsWith("azure.com/#home") && await yesNoDialog(START_AUTOMATION_QUESTION)) {
       // Sidebar
       await findClickWait("fxs-topbar-sidebar-collapse-button", "Show portal menu", 0.5*T);
@@ -157,10 +158,10 @@
       // Shared access signature
       await findClickWait("fxc-menu-item", "Shared access signature", 5*T, true);
       // SAS form
-      /// Checkboxes
-      let ucFieldIDs = ["__field__7__", "__field__8__", "__field__9__", // Allowed services
-                        "__field__16__", "__field__17__", "__field__19__", "__field__20__", "__field__21__", "__field__22__"]; // Allowed permissions
-      let cFieldIDs = ["__field__11__", "__field__12__", ]; // Allowed resource types
+      /// Checkboxes - uc = uncheck, c = check
+      let ucFieldIDs = ["__field__3__", "__field__4__", "__field__5__", // Allowed services (Blob)
+                        "__field__12__", "__field__13__", "__field__15__", "__field__16__", "__field__17__", "__field__18__"]; // Allowed permissions (Read, Write, Delete, Create)
+      let cFieldIDs = ["__field__7__", "__field__8__", ]; // Allowed resource types (Containter, Object)
       for (let ucFieldID of ucFieldIDs) {
         let ucField = document.getElementById(ucFieldID);
         if (ucField.ariaChecked == true.toString()) {
