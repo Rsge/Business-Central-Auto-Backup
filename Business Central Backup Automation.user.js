@@ -5,7 +5,7 @@
 // @description    Automates the creation of backups of the Business Central database using Azure.
 // @description:de Automatisierung des Erstellens von Backups von Business Central mittels Azure.
 
-// @version        2.0.2
+// @version        2.1.0
 // @author         Rsge
 // @copyright      2025+, Jan G. (Rsge)
 // @license        Mozilla Public License 2.0
@@ -139,7 +139,6 @@
   /* Main */
   // Azure
   window.addEventListener('load', async function() {
-    debugger;
     if (LOC.href.endsWith("azure.com/#home") && await yesNoDialog(START_AUTOMATION_QUESTION)) {
       // Sidebar
       await findClickWait("fxs-topbar-sidebar-collapse-button", "Show portal menu", 0.5*T);
@@ -158,20 +157,21 @@
       // Shared access signature
       await findClickWait("fxc-menu-item", "Shared access signature", 5*T, true);
       // SAS form
-      /// Checkboxes - uc = uncheck, c = check
-      let ucFieldIDs = ["__field__3__", "__field__4__", "__field__5__", // Allowed services (Blob)
-                        "__field__12__", "__field__13__", "__field__15__", "__field__16__", "__field__17__", "__field__18__"]; // Allowed permissions (Read, Write, Delete, Create)
-      let cFieldIDs = ["__field__7__", "__field__8__", ]; // Allowed resource types (Containter, Object)
-      for (let ucFieldID of ucFieldIDs) {
-        let ucField = document.getElementById(ucFieldID);
-        if (ucField.ariaChecked == true.toString()) {
-          ucField.click();
-        }
-      }
-      for (let cFieldID of cFieldIDs) {
-        let cField = document.getElementById(cFieldID);
-        if (cField.ariaChecked === false.toString()) {
-          cField.click();
+      let sasCategories = document.getElementsByClassName("msportalfx-layoutChildren-horizontal-inlineblock");
+      /// Checkboxes - check = false, uncheck = true
+      let sasTypeAndIdcs = [
+        [true, [1, 2, 3,]], // Allowed services (Blob)
+        [false, [1, 2,]], // Allowed resource types (Containter, Object)
+        [true, [3, 4, 6, 7, 8, 9]], // Allowed permissions (Read, Write, Delete, Create)
+      ];
+      for (i = 0; i < sasTypeAndIdcs.length; i++) {
+        let sasType = sasTypeAndIdcs[i][0];
+        for (let sysIdx of sasTypeAndIdcs[i][1]) {
+          let sasElement = sasCategories[i].children[sysIdx]
+          let sasCheckBox = sasElement.getElementsByClassName("fxc-base azc-control azc-editableControl")[0];
+          if (sasCheckBox.ariaChecked == sasType.toString()) {
+            sasCheckBox.click()
+          }
         }
       }
       /// Date
