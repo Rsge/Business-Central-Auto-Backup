@@ -5,7 +5,7 @@
 // @description    Automates the creation of backups of the Business Central database using Azure.
 // @description:de Automatisierung des Erstellens von Backups von Business Central mittels Azure.
 
-// @version        2.1.1
+// @version        2.2.0
 // @author         Rsge
 // @copyright      2025+, Jan G. (Rsge)
 // @license        Mozilla Public License 2.0
@@ -29,6 +29,7 @@
 
   // Constants
   const T = 1000;
+  const MIN_SAS_DAYS = 3;
   const LOC = window.location;
   const LINK_LABEL = "azureSasUrl";
   // Resources
@@ -180,10 +181,27 @@
       datePanelOpener.click();
       let datePanel = getXthElementByClassName("azc-datePanel");
       let todayBox = datePanel.getElementsByClassName("azc-datePanel-selected")[0];
-      let weekArray = Array.from(todayBox.parentNode.children);
-      let todayIdx = weekArray.indexOf(todayBox);
-      let tomorrowBox = weekArray[todayIdx + 1];
-      tomorrowBox.click();
+      let todaysWeek = todayBox.parentNode;
+      let todaysWeekDays = Array.from(todaysWeek.children);
+      let todayIdx = todaysWeekDays.indexOf(todayBox);
+      let sasDayBox;
+      const MAX_DAY_IDX = 7 - 1;
+      if (todayIdx <= MAX_DAY_IDX - MIN_SAS_DAYS) {
+        sasDayBox = todaysWeekDays[todayIdx + MIN_SAS_DAYS];
+      } else {
+        let calendarWeeks = Array.from(todaysWeek.parentNode.children);
+        let todaysWeekIdx = calendarWeeks.indexOf(todaysWeek);
+        let sasWeekIdx = todaysWeekIdx + Math.ceil(MIN_SAS_DAYS / 7);
+        if (sasWeekIdx <= calendarWeeks.length - 1) {
+          let sasWeekDays = Array.from(calendarWeeks[sasWeekIdx].children);
+          let sasDayIdx = ((todayIdx + MIN_SAS_DAYS) % MAX_DAY_IDX) - 1
+          sasDayBox = sasWeekDays.at(sasDayIdx);
+        } else {
+          let sasWeekDays = Array.from(calendarWeeks.at(-1).children);
+          sasDayBox = sasWeekDays.at(-1);
+        }
+      }
+      sasDayBox.click();
       await sleep(T);
       /// Generate
       await findClickWait("fxc-simplebutton", "Generate SAS and connection string", 2*T, true);
