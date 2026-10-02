@@ -5,7 +5,7 @@
 // @description    Automates the creation of backups of the Business Central database using Azure.
 // @description:de Automatisierung des Erstellens von Backups von Business Central mittels Azure.
 
-// @version        2.2.0
+// @version        2.3.0
 // @author         Rsge
 // @copyright      2025+, Jan G. (Rsge)
 // @license        Mozilla Public License 2.0
@@ -156,7 +156,7 @@
       // Sidebar
       await findClickWait("fxs-topbar-sidebar-collapse-button", "Show portal menu", 0.5*T);
       // Shared access signature
-      await findClickWait("fxc-menu-item", "Shared access signature", 5*T, true);
+      await findClickWait("fxc-menu-item", "Shared access signature", 3*T, true);
       // SAS form
       let sasCategories = document.getElementsByClassName("msportalfx-layoutChildren-horizontal-inlineblock");
       /// Checkboxes - check = false, uncheck = true
@@ -287,10 +287,8 @@
                 let env = envList.children[ENV_IDX].children[0].children[0].children[0].children[0].children[0];
                 env.click();
                 await sleep(T);
-                // Database dropdown
-                await findClickWait("ms-Button ms-Button--commandBar ms-Button--hasMenu", "Database", 0.5*T);
                 // Create export
-                await findClickWait("ms-ContextualMenu-link", "Create database export");
+                await findClickWait("ms-Button ms-Button--commandBar ms-CommandBarItem-link", "Export Database", 0.5*T);
               } else if (node.className.startsWith("ms-Layer ms-Layer--fixed")) {
                 // Insert link
                 let sasTxt = getElementByClassNameAndTitle("ms-TextField-field", "SAS URI from Azure");
