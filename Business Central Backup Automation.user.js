@@ -5,7 +5,7 @@
 // @description    Automates the creation of backups of the Business Central database using Azure.
 // @description:de Automatisierung des Erstellens von Backups von Business Central mittels Azure.
 
-// @version        2.3.0
+// @version        3.0.0
 // @author         Rsge
 // @copyright      2025+, Jan G. (Rsge)
 // @license        Mozilla Public License 2.0
@@ -19,6 +19,7 @@
 
 // @match          https://portal.azure.com/*
 // @match          https://businesscentral.dynamics.com/*
+// @match          https://*.reactblade.portal.azure.net/*
 
 // @run-at         document-end
 // @grant          none
@@ -44,10 +45,14 @@
   // Variables
   let i;
 
-  // Basic functions
+  /* --------------------------------------------------- */
+
+  /* Basic functions */
+
   function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
+
   function getCookies() {
     return document.cookie.split(";")
       .map(function(cstr) {
@@ -57,12 +62,15 @@
       return acc;
     }, {});
   }
+
   function setCookie(key, value) {
     document.cookie = key + "=" + value + "; path=/";
   }
+
   function getXthElementByClassName(className, i = 0) {
     return document.getElementsByClassName(className)[i];
   }
+
   function getElementByClassNameAndTitle(className, title) {
     let items = Array.from(document.getElementsByClassName(className));
     const foundItem = items.find(
@@ -70,6 +78,7 @@
     );
     return foundItem;
   }
+
   function getElementByClassNameAndText(className, text) {
     let items = Array.from(document.getElementsByClassName(className));
     const foundItem = items.find(
@@ -77,6 +86,7 @@
     );
     return foundItem;
   }
+
   async function findClickWait(className, string, t, useText = false) {
     let element;
     if (useText) {
@@ -91,6 +101,28 @@
     }
     return false;
   }
+
+  async function waitTillFindClick(className, string, t, useText = false, maxRepeats = 10) {
+    let element;
+    let i = 0;
+    while (!element) {
+      if (useText) {
+        element = getElementByClassNameAndText(className, string);
+      } else {
+        element = getElementByClassNameAndTitle(className, string);
+      }
+      if (element) {
+        element.click();
+        return true;
+      }
+      i++;
+      if (i > maxRepeats) {
+        return false;
+      }
+      await sleep(t);
+    }
+  }
+
 
   /* --------------------------------------------------- */
 
@@ -138,15 +170,29 @@
   /* --------------------------------------------------- */
 
   /* Main */
-  // Azure
   window.addEventListener('load', async function() {
-    if (LOC.href.endsWith("azure.com/#home") && await yesNoDialog(START_AUTOMATION_QUESTION)) {
+    // Azure iframe
+    if (window !== window.top) {
+      let observer = new MutationObserver(() => {
+        let link = document.querySelector("a.fui-Link[href*='storageAccounts']");
+        if (link) {
+          link.click()
+          observer.disconnect();
+        }
+      });
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+    } // Azure main frame
+    else if (LOC.href.endsWith("azure.com/#home") && await yesNoDialog(START_AUTOMATION_QUESTION)) {
       // Sidebar
-      await findClickWait("fxs-topbar-sidebar-collapse-button", "Show portal menu", 0.5*T);
+      await waitTillFindClick("fxs-topbar-sidebar-collapse-button", "Show portal menu", 0.5*T);
       // Storage accounts
-      await findClickWait("fxs-sidebar-item-link", "Storage accounts", 3*T);
+      await waitTillFindClick("fxs-sidebar-item-link", "Storage accounts", 3*T);
+      /*
       // First storage account
-      let accountCName = "fxc-gcflink-link"
+      let accountCName = "fui-Link fxBrowseGridNonSelectable"
       if (!getXthElementByClassName(accountCName)) {
         window.open("https://portal.azure.com/#blade/HubsExtension/BrowseResourceLegacy/resourceType/Microsoft.Storage%2FStorageAccounts", "_self");
         await sleep(3*T);
@@ -154,11 +200,16 @@
       getXthElementByClassName(accountCName).click();
       await sleep(3*T);
       // Sidebar
-      await findClickWait("fxs-topbar-sidebar-collapse-button", "Show portal menu", 0.5*T);
+      await waitTillFindClick("fxs-topbar-sidebar-collapse-button", "Show portal menu", 0.5*T);
+      */
       // Shared access signature
-      await findClickWait("fxc-menu-item", "Shared access signature", 3*T, true);
+      await waitTillFindClick("fxc-menu-listView-item", "Shared access signature", 3*T, true);
       // SAS form
-      let sasCategories = document.getElementsByClassName("msportalfx-layoutChildren-horizontal-inlineblock");
+      let sasCategories;
+      while (!sasCategories || sasCategories.length < 3) {
+        await sleep(2*T);
+        sasCategories = document.getElementsByClassName("msportalfx-layoutChildren-horizontal-inlineblock");
+      }
       /// Checkboxes - check = false, uncheck = true
       let sasTypeAndIdcs = [
         [true, [1, 2, 3,]], // Allowed services (Blob)
@@ -213,7 +264,7 @@
       // Sidebar
       await findClickWait("fxs-topbar-sidebar-collapse-button", "Show portal menu", 0.5*T);
       // Containers
-      await findClickWait("fxc-menu-item", "Containers", 4*T, true);
+      await waitTillFindClick("fxc-menu-item", "Containers", 4*T, true);
       // First container
       getXthElementByClassName("ms-List-cell")?.children[0].children[1].children[0].children[0].children[1].click();
       await sleep(240*T);
@@ -231,13 +282,8 @@
         }
         // Wait for loading of elements.
         let ranSettings = false;
-        let ranAC = false;
         let observer = new MutationObserver(function(mutations) {
           mutations.forEach(function(mutation) {
-            // "Disable" observer after Admin Center is clicked.
-            if (ranAC) {
-              return;
-            }
             let node = mutation.addedNodes[0];
             if (node?.children != null && node.children.length > 0) {
               // Open settings dropdown.
@@ -250,9 +296,10 @@
               else {
                 let adminCenter = document.getElementById("AdminCenter")
                 if (adminCenter) {
-                  ranAC = true;
                   setCookie(LINK_LABEL, Link)
                   adminCenter.click();
+                  // Disable observer after Admin Center is clicked.
+                  observer.disconnect()
                   window.close();
                 }
               }
@@ -272,7 +319,7 @@
           return;
         }
         // Environments
-        findClickWait("ms-Button ms-Button--action ms-Button--command", "Environments", 0);
+        await waitTillFindClick("ms-Button ms-Button--action ms-Button--command", "Environments", 1);
         // Wait for loading of environments.
         let run = false;
         const EnvListClassName = "ms-List-page"
@@ -288,7 +335,7 @@
                 env.click();
                 await sleep(T);
                 // Create export
-                await findClickWait("ms-Button ms-Button--commandBar ms-CommandBarItem-link", "Export Database", 0.5*T);
+                await waitTillFindClick("ms-Button ms-Button--commandBar ms-CommandBarItem-link", "Export Database", 0.5*T);
               } else if (node.className.startsWith("ms-Layer ms-Layer--fixed")) {
                 // Insert link
                 let sasTxt = getElementByClassNameAndTitle("ms-TextField-field", "SAS URI from Azure");
